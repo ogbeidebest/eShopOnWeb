@@ -1,4 +1,4 @@
-name: eShopOnWeb Build and Test
+name: Deploy Azure WebApp
 
 on: [push, workflow_dispatch]
 
@@ -7,56 +7,15 @@ env:
   LOCATION: eastus
   TEMPLATE-FILE: infra/webapp.bicep
   SUBSCRIPTION-ID: ${{ secrets.AZURE_CREDENTIALS.subscriptionId }}
-  WEBAPP-NAME: eshoponweb-webapp-student-2
+  WEBAPP-NAME: eshoponweb-webapp-student-2-${{ github.run_id }} # Ensure unique name
 
 jobs:
-  buildandtest:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-          dotnet-quality: 'preview'
-      - name: Build with dotnet
-        run: dotnet build ./eShopOnWeb.sln --configuration Release
-      - name: Test with dotnet
-        run: dotnet test ./eShopOnWeb.sln --configuration Release
-      - name: dotnet publish
-        run: |
-          dotnet publish ./src/Web/Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
-          cd ${{env.DOTNET_ROOT}}/myapp
-          zip -r ../app.zip .
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/app.zip
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: bicep-template
-          path: ${{ env.TEMPLATE-FILE }}
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: buildandtest
-    environment:
-      name: 'Development'
-    steps:
-      - name: Download artifact for deployment job (.net-app)
-        uses: actions/download-artifact@v4
-        with:
-          name: .net-app
-          path: .net-app
-      - name: Download artifact for deployment job (bicep-template)
-        uses: actions/download-artifact@v4
-        with:
-          name: bicep-template
-          path: bicep-template
-      - name: List downloaded Bicep files
-        run: ls -R bicep-template
+      - name: List Bicep files
+        run: ls -R infra
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -69,27 +28,21 @@ jobs:
         run: |
           az deployment group validate \
             --resource-group ${{ env.RESOURCE-GROUP }} \
-            --template-file bicep-template/webapp.bicep \
+            --template-file ${{ env.TEMPLATE-FILE }} \
             --parameters webAppName=${{ env.WEBAPP-NAME }} location=${{ env.LOCATION }}
-      - name: Deploy Azure WebApp using Bicep file
+      - name: Deploy Azure WebApp
         uses: azure/arm-deploy@v2
         with:
           subscriptionId: ${{ env.SUBSCRIPTION-ID }}
           resourceGroupName: ${{ env.RESOURCE-GROUP }}
-          template: bicep-template/webapp.bicep
+          template: ${{ env.TEMPLATE-FILE }}
           parameters: '{"webAppName": "${{ env.WEBAPP-NAME }}", "location": "${{ env.LOCATION }}"}'
           failOnStdErr: true
-      - name: Publish Website to WebApp (CLI)
-        uses: Azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az webapp deploy --name ${{ env.WEBAPP-NAME }} --resource-group ${{ env.RESOURCE-GROUP }} --src-path .net-app/app.zip --type zip
       - name: Debug Deployment Failure
         if: failure()
         run: |
           az deployment group create \
             --resource-group ${{ env.RESOURCE-GROUP }} \
-            --template-file bicep-template/webapp.bicep \
+            --template-file ${{ env.TEMPLATE-FILE }} \
             --parameters webAppName=${{ env.WEBAPP-NAME }} location=${{ env.LOCATION }} \
             --verbose
