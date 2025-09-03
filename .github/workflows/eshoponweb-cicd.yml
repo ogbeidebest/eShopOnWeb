@@ -8,7 +8,7 @@ env:
   RESOURCE-GROUP: rg-eshoponweb-trainer
   LOCATION: eastus
   TEMPLATE-FILE: infra/webapp.bicep
-  SUBSCRIPTION-ID: ${{secrets.AZURE_CREDENTIALS.subscriptionId}}
+  SUBSCRIPTION-ID: ${{ secrets.AZURE_CREDENTIALS.subscriptionId }}
   WEBAPP-NAME: eshoponweb-webapp-student-2
 
 
