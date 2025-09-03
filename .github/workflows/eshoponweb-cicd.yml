@@ -12,7 +12,7 @@ env:
   WEBAPP-NAME: eshoponweb-webapp-student-2
 
 jobs:
-  #Build, test and publish .net web project in repository
+  # Build, test and publish .net web project in repository
   buildandtest:
     runs-on: ubuntu-latest
     steps:
@@ -83,6 +83,14 @@ jobs:
     # Debugging: Add a step to verify if the login was successful
     - name: Verify Azure Login
       run: az account show
+    
+    # Template Validation (using Azure CLI)
+    - name: Validate Azure Bicep Template
+      run: |
+        az deployment group validate \
+          --resource-group ${{ env.RESOURCE-GROUP }} \
+          --template-file bicep-template/webapp.bicep \
+          --parameters webAppName=${{ env.WEBAPP-NAME }} location=${{ env.LOCATION }}
     
     # Deploy Azure WebApp using Bicep file
     - name: Deploy Azure WebApp using Bicep file
