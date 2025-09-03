@@ -91,9 +91,10 @@ jobs:
         subscriptionId: ${{ env.SUBSCRIPTION-ID }}
         resourceGroupName: ${{ env.RESOURCE-GROUP }}
         template: bicep-template/webapp.bicep
-        parameters: 'webAppName=${{ env.WEBAPP-NAME }} location=${{ env.LOCATION }}'
-        failOnStdErr: true
-        debug: true  # Added this flag for better logging
+        parameters: |
+          -webAppName=${{ env.WEBAPP-NAME }} 
+          -location=${{ env.LOCATION }}
+        failOnStdErr: true  # Ensure that any errors in stderr will fail the deployment
 
     # Publish website to Azure App Service using CLI (WebApp)
     - name: Publish Website to WebApp (CLI)
